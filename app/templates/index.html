@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <!-- Grundlegende Meta-Tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Chatbot</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+
+        .logo {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        max-width: 200px; /* Passen Sie die Größe nach Bedarf an */
+        }
+                /* PDF-Button Styling */
+        .pdf-button {
+            display: inline-block;
+            padding: 5px 8px;
+            margin: 5px;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 12px;
+            text-align: center;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+        /* Hover-Effekt für PDF-Buttons */
+        .pdf-button:hover {
+            background-color: #0056b3;
+        }
+        /* Container für PDF-Buttons */
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        /* Lade-Indikator Styling */
+        #loading-indicator {
+            display: none;
+            margin: 20px auto;
+            text-align: center;
+            width: 100%;
+        }
+        /* Spinner-Animation */
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(52, 152, 219, 0.1);
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        /* Spinner-Animations-Keyframes */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Chat-Nachrichten Styling */
+        .user-message {
+            background-color: #d1e7ff;
+        }
+        .assistant-message {
+            background-color: #f8f9fa;
+        }
+        /* Logo-Container Styling */
+        .logo-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+        }
+        
+        .logo-container img {
+            max-width: 200px;
+            height: auto;
+        }
+        /* Datenbank-Seitenleiste Styling */
+        .database-sidebar {
+            position: fixed;
+            left: 0;
+            top: 120px;
+            bottom: 0;
+            width: 250px;
+            background: #f5f5f5;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .database-item {
+            padding: 10px;
+            margin: 5px 0;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+
+        .database-item:hover {
+            background-color: #e0e0e0;
+        }
+
+        .database-item.active {
+            background-color: #007bff;
+            color: white;
+        }
+
+        /* Hauptinhalt-Bereich */
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Logo-Bereich -->
+    <div class="logo-container">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="logo">
+    </div>
+    
+    <!-- Hauptcontainer für den Chat -->
+    <div class="flex items-center justify-center h-screen">
+        <div class="bg-white shadow-lg rounded-lg w-full max-w-4xl flex flex-col h-[80vh]">
+            <!-- Chat-Bereich -->
+            <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 relative">
+                <!-- Hier werden die Chat-Nachrichten dynamisch eingefügt -->
+            </div>
+            <!-- Lade-Indikator -->
+            <div id="loading-indicator" class="px-4">
+                <div class="spinner"></div>
+            </div>
+            <!-- Eingabebereich -->
+            <div class="p-4 border-t bg-gray-50">
+                <form id="chat-form" class="flex gap-2">
+                    <input type="text" 
+                           id="message-input" 
+                           class="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Ihre Nachricht..."
+                           required>
+                    <button type="submit" 
+                            id="send-button"
+                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                        Senden
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Datenbank-Seitenleiste -->
+    <div class="database-sidebar">
+        <h3>Verfügbare Datenbanken</h3>
+        <ul id="database-list">
+            {% for db in databases %}
+            <li class="database-item {% if db.name == current_db %}active{% endif %}"
+                data-db-name="{{ db.name }}">
+                {{ db.name }} ({{ "%.1f"|format(db.size) }} MB)
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <script>
+        // Funktion zum Öffnen von PDFs in einem neuen Tab
+        function openPdfInReader(url) {
+            window.open(url, '_blank');
+        }
+
+        // Funktion zum Hinzufügen von Chat-Nachrichten
+        function addMessageToChat(role, content, pdfLinks = []) {
+            const container = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `p-3 rounded-lg ${
+                role === 'user' ? 'user-message ml-auto' : 'assistant-message'
+            } max-w-[80%] mb-4`;
+
+            // Nachrichteninhalt hinzufügen
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = content;
+            messageDiv.appendChild(contentDiv);
+
+            // PDF-Links oder "Keine PDFs" Hinweis hinzufügen
+            if (role === 'user') {
+                // Benutzer-Nachrichten haben keine PDFs
+            } else if (Array.isArray(pdfLinks) && pdfLinks.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'mt-2';
+                
+                // PDF-Buttons erstellen
+                pdfLinks.forEach((pdf) => {
+                    const button = document.createElement('a');
+                    button.href = pdf.url;
+                    button.className = 'pdf-button';
+                    button.textContent = pdf.name;
+                    button.target = '_blank';
+                    sourcesDiv.appendChild(button);
+                });
+                
+                messageDiv.appendChild(sourcesDiv);
+            } else if (role === 'assistant') {
+                const noPdfMessage = document.createElement('div');
+                noPdfMessage.className = 'text-sm text-gray-500 mt-2';
+                noPdfMessage.textContent = 'Keine relevanten PDFs gefunden.';
+                messageDiv.appendChild(noPdfMessage);
+            }
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Funktion zum Senden von Nachrichten
+        async function sendMessage(message) {
+            const input = document.getElementById('message-input');
+            const button = document.getElementById('send-button');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            
+            // UI-Elemente während des Sendens deaktivieren
+            input.disabled = true;
+            button.disabled = true;
+            loadingIndicator.style.display = 'block';
+
+            try {
+                // Nachricht zum Chat hinzufügen
+                addMessageToChat('user', message);
+
+                // API-Anfrage senden
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message
+                    })
+                });
+
+                // Antwort verarbeiten
+                const data = await response.json();
+                if (data.response) {
+                    addMessageToChat('assistant', data.response, data.pdfLinks || []);
+                } else {
+                    addMessageToChat('assistant', 'Error: Could not process your message');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessageToChat('assistant', 'Error: Failed to send message');
+            } finally {
+                // UI-Elemente wieder aktivieren
+                input.disabled = false;
+                button.disabled = false;
+                loadingIndicator.style.display = 'none';
+                input.focus();
+            }
+        }
+
+        // Event-Listener für das Chat-Formular
+        document.getElementById('chat-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            if (message) {
+                input.value = '';
+                await sendMessage(message);
+            }
+        };
+
+        // Event-Listener für Datenbank-Auswahl
+        document.querySelectorAll('.database-item').forEach(item => {
+            item.addEventListener('click', async () => {
+                const dbName = item.dataset.dbName;
+                try {
+                    // Datenbankwechsel-Anfrage senden
+                    const response = await fetch('/switch_database', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            database: dbName
+                        })
+                    });
+                    
+                    // Antwort verarbeiten
+                    const data = await response.json();
+                    if (data.success) {
+                        // Seite neu laden wenn erforderlich
+                        if (data.reload) {
+                            window.location.reload();
+                        }
+                        
+                        // Aktive Datenbank visuell markieren
+                        document.querySelectorAll('.database-item').forEach(db => {
+                            db.classList.remove('active');
+                        });
+                        item.classList.add('active');
+                    } else {
+                        console.error('Fehler beim Datenbankwechsel:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Fehler beim Datenbankwechsel:', error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
