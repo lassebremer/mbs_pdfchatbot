@@ -1,13 +1,14 @@
 
 ## Erste Schritte
+1. Huggingface Pro-Account erstellen und API-Key in .env einfügen
 
-1. PDF-Datenbank erstellen:
-   - Legen Sie Ihre PDFs im Ordner `data_pdf` ab
-   - Passen Sie den `FOLDER_PATH` in `vectorize_folder.py` an
+2. PDF-Datenbank erstellen:
+   - Passen sie den Dateipfad des Ordners den sie verarbeiten wollen im Skript "vectorize_folder.py" unter FOLDER_PATH an.
    - Führen Sie das Skript aus: vectorize_folder.py
 
-2. Server starten: python wsgi.py
-3. Öffnen Sie den Browser unter `http://localhost:5000`
+3. Server starten: python wsgi.py
+
+4. Öffnen Sie den Browser unter `http://localhost:5000`
 
 ## Projektstruktur
 
@@ -24,9 +25,12 @@
 ## Nutzung
 
 1. **PDF-Verarbeitung**:
-   - PDFs im `data_pdf` Ordner ablegen
+   - FOLDER_PATH im Skript "vectorize_folder.py" anpassen
    - `vectorize_folder.py` ausführen
    - Verarbeitungsbericht wird erstellt
+   Hinweise: 
+   - Ein Ordner sollte nicht mehr als 1000 Dateien enthalten.
+   - Dieser Prozess kann einige Zeit in Anspruch nehmen, je nach Größe der PDF-Dateien und der Leistung des Systems.
 
 2. **Chatbot-Nutzung**:
    - Server starten
@@ -41,20 +45,6 @@
 - **Speicherprobleme**: Batch-Größe in `vectorize_folder.py` anpassen
 - **GPU-Nutzung**: CUDA-Installation und PyTorch-Version prüfen
 
-## Performance-Optimierung
-
-- GPU-Beschleunigung aktivieren
-- Batch-Größen anpassen
-- Connection-Pool-Einstellungen in `wsgi.py` optimieren
-- Cache-Nutzung für häufige Anfragen aktivieren
-
-
-## Wartung
-
-- Log-Dateien regelmäßig prüfen
-- Datenbank-Indizes optimieren
-- Cache regelmäßig bereinigen
-- PDF-Verarbeitung überwachen
 
 ## Support
 
