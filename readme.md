@@ -17,7 +17,6 @@
   - `chatbot.py` - Chatbot-Kernfunktionalität
   - `utils.py` - Hilfsfunktionen
   - `templates/` - HTML-Templates
-- `data_pdf/` - Verzeichnis für PDF-Dokumente
 - `databases/` - SQLite-Datenbanken
 - `vectorize_folder.py` - Skript zur PDF-Verarbeitung
 - `wsgi.py` - Server-Konfiguration
