@@ -1,14 +1,15 @@
 
 ## Erste Schritte
 1. Huggingface Pro-Account erstellen und API-Key in .env einfügen
+2. Tessseract-OCR installieren und Dateipfad in .env anpassen (https://sourceforge.net/projects/tesseract-ocr.mirror/)
 
-2. PDF-Datenbank erstellen:
+3. PDF-Datenbank erstellen:
    - Passen sie den Dateipfad des Ordners den sie verarbeiten wollen im Skript "vectorize_folder.py" unter FOLDER_PATH an.
    - Führen Sie das Skript aus: vectorize_folder.py
 
-3. Server starten: python wsgi.py
+4. Server starten: python wsgi.py
 
-4. Öffnen Sie den Browser unter `http://localhost:5000`
+5. Öffnen Sie den Browser unter `http://localhost:5000`
 
 ## Projektstruktur
 
